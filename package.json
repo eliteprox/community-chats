@@ -1,0 +1,44 @@
+{
+  "name": "community-chats",
+  "version": "1.0.0",
+  "description": "Web3 Audio-Only Conference Application",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:arbitrum-testnet": "hardhat run scripts/deploy.ts --network arbitrumTestnet",
+    "deploy:arbitrum": "hardhat run scripts/deploy.ts --network arbitrum",
+    "deploy:arweave": "node scripts/deploy-arweave.js",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write \"**/*.{ts,tsx,sol,json,md}\""
+  },
+  "keywords": [
+    "web3",
+    "audio",
+    "conference",
+    "arbitrum",
+    "ens",
+    "arweave"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@types/node": "^20.10.0",
+    "hardhat": "^2.19.0",
+    "typescript": "^5.3.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0",
+    "prettier-plugin-solidity": "^1.2.0"
+  },
+  "dependencies": {
+    "@ethersproject/providers": "^5.7.2",
+    "dotenv": "^16.3.1",
+    "arweave": "^1.14.4"
+  }
+}
+
