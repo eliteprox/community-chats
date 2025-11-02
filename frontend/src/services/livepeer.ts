@@ -18,11 +18,9 @@ export interface LivepeerService {
 
 export class LivepeerServiceRegistry {
   private contract: Contract;
-  private provider: BrowserProvider;
   private cache: Map<string, LivepeerService> = new Map();
 
   constructor(provider: BrowserProvider) {
-    this.provider = provider;
     this.contract = new Contract(
       SERVICE_REGISTRY_ADDRESS,
       SERVICE_REGISTRY_ABI,

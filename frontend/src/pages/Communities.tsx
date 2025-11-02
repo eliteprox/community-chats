@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, Lock, Radio } from 'lucide-react';
+import { Plus, Users, Lock } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { web3Service } from '@/services/web3';
 import { Community } from '@/types';

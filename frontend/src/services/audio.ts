@@ -250,41 +250,52 @@ export class AudioService {
  * Multi-participant audio mixer
  */
 export class ParticipantAudioMixer {
-  private audioContext: AudioContext;
+  private audioContext: AudioContext | null = null;
   private participantSources: Map<string, MediaStreamAudioSourceNode> = new Map();
   private participantGains: Map<string, GainNode> = new Map();
   private participantAnalysers: Map<string, AnalyserNode> = new Map();
-  private destinationNode: MediaStreamAudioDestinationNode;
-  private mixedStream: MediaStream;
+  private destinationNode: MediaStreamAudioDestinationNode | null = null;
+  private mixedStream: MediaStream | null = null;
 
   constructor() {
-    this.audioContext = new AudioContext({
-      sampleRate: 48000,
-      latencyHint: 'interactive',
-    });
-    
-    this.destinationNode = this.audioContext.createMediaStreamDestination();
-    this.mixedStream = this.destinationNode.stream;
+    // Don't create AudioContext in constructor (React strict mode issues)
+    // Will be created on first use
+  }
+
+  private ensureAudioContext(): void {
+    if (!this.audioContext || this.audioContext.state === 'closed') {
+      this.audioContext = new AudioContext({
+        sampleRate: 48000,
+        latencyHint: 'interactive',
+      });
+      
+      this.destinationNode = this.audioContext.createMediaStreamDestination();
+      this.mixedStream = this.destinationNode.stream;
+    }
   }
 
   /**
    * Add a participant's audio stream
    */
   addParticipant(participantId: string, stream: MediaStream): void {
+    this.ensureAudioContext();
+    
     if (this.participantSources.has(participantId)) {
       this.removeParticipant(participantId);
     }
 
-    const source = this.audioContext.createMediaStreamSource(stream);
-    const gainNode = this.audioContext.createGain();
-    const analyserNode = this.audioContext.createAnalyser();
+    const source = this.audioContext!.createMediaStreamSource(stream);
+    const gainNode = this.audioContext!.createGain();
+    const analyserNode = this.audioContext!.createAnalyser();
 
     analyserNode.fftSize = 256;
     analyserNode.smoothingTimeConstant = 0.8;
 
     source.connect(gainNode);
     gainNode.connect(analyserNode);
-    gainNode.connect(this.destinationNode);
+    gainNode.connect(this.destinationNode!);
+
+    console.log(`🎙️ Added participant ${participantId} to audio mixer`);
 
     this.participantSources.set(participantId, source);
     this.participantGains.set(participantId, gainNode);
@@ -359,7 +370,7 @@ export class ParticipantAudioMixer {
   /**
    * Get the mixed audio stream
    */
-  getMixedStream(): MediaStream {
+  getMixedStream(): MediaStream | null {
     return this.mixedStream;
   }
 
@@ -382,7 +393,7 @@ export class ParticipantAudioMixer {
     this.participantGains.clear();
     this.participantAnalysers.clear();
 
-    if (this.audioContext.state !== 'closed') {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close();
     }
   }

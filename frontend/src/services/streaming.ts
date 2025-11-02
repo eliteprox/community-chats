@@ -15,7 +15,7 @@ export class WHIPStreamer {
   /**
    * Start streaming to WHIP endpoint
    */
-  async startStreaming(stream: MediaStream, config: StreamConfig): Promise<void> {
+  async startStreaming(stream: MediaStream, _config: StreamConfig): Promise<void> {
     if (this.isStreaming) {
       throw new Error('Already streaming');
     }
@@ -213,7 +213,7 @@ export class RTMPStreamer {
           resolve();
         };
 
-        this.websocket.onerror = (error) => {
+        this.websocket.onerror = () => {
           reject(new Error('WebSocket connection failed'));
         };
 
@@ -320,7 +320,6 @@ export class RTMPStreamer {
 export class StreamingManager {
   private whipStreamer: WHIPStreamer | null = null;
   private rtmpStreamer: RTMPStreamer | null = null;
-  private currentStream: MediaStream | null = null;
   private config: StreamConfig;
 
   constructor(config: StreamConfig) {
@@ -331,8 +330,6 @@ export class StreamingManager {
    * Start streaming to configured endpoints
    */
   async startStreaming(stream: MediaStream): Promise<void> {
-    this.currentStream = stream;
-
     const promises: Promise<void>[] = [];
 
     // Start WHIP streaming if URL is provided
@@ -383,7 +380,6 @@ export class StreamingManager {
 
     this.whipStreamer = null;
     this.rtmpStreamer = null;
-    this.currentStream = null;
   }
 
   /**

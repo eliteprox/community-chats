@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        buffer: 'buffer',
       },
     },
     base: isArweave ? './' : '/',
@@ -28,9 +29,18 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: true,
+      allowedHosts: ['dev.eliteencoder.net'],
     },
     define: {
       'process.env': {},
+      global: 'globalThis',
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        define: {
+          global: 'globalThis',
+        },
+      },
     },
   };
 })

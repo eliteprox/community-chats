@@ -33,13 +33,22 @@ export class ENSService {
 
   /**
    * Resolve address to ENS name (reverse lookup)
+   * Note: ENS only works on Ethereum mainnet, not on L2s like Arbitrum
    */
   async resolveAddressToName(address: string): Promise<string | null> {
     try {
+      const network = await this.provider.getNetwork();
+      
+      // ENS only available on Ethereum mainnet (chainId 1) and Sepolia (11155111)
+      if (network.chainId !== 1n && network.chainId !== 11155111n) {
+        // On Arbitrum or other L2s, ENS lookups aren't supported
+        return null;
+      }
+
       const ensName = await this.provider.lookupAddress(address);
       return ensName;
     } catch (error) {
-      console.error('Error looking up ENS name:', error);
+      // Silently return null for unsupported networks
       return null;
     }
   }

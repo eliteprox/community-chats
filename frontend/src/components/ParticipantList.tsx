@@ -77,7 +77,7 @@ function ParticipantItem({ participant, isCurrentUser }: ParticipantItemProps) {
             {participant.displayName}
           </span>
           {participant.isHost && (
-            <Crown className="w-4 h-4 text-yellow-500" title="Host" />
+            <Crown className="w-4 h-4 text-yellow-500" />
           )}
           {isCurrentUser && (
             <span className="text-xs text-gray-400">(You)</span>

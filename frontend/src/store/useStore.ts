@@ -66,9 +66,22 @@ export const useStore = create<AppState>((set) => ({
     set({ currentMeeting: meeting }),
 
   addParticipant: (participant) =>
-    set((state) => ({
-      participants: [...state.participants, participant],
-    })),
+    set((state) => {
+      // Check if participant already exists (prevent duplicates!)
+      const exists = state.participants.some(
+        p => p.address.toLowerCase() === participant.address.toLowerCase()
+      );
+      
+      if (exists) {
+        console.log('Participant already in list, skipping add:', participant.address);
+        return state; // Don't update state
+      }
+      
+      console.log('Adding participant to list:', participant.address);
+      return {
+        participants: [...state.participants, participant],
+      };
+    }),
 
   removeParticipant: (address) =>
     set((state) => ({

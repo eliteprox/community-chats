@@ -1,4 +1,6 @@
 import { Meeting } from '@/types';
+import { meetingContractService, MeetingStatus } from './meetingContract';
+import { BrowserProvider } from 'ethers';
 
 export interface CalendarEvent extends Meeting {
   recurrence?: {
@@ -18,18 +20,53 @@ const STORAGE_KEYS = {
 
 /**
  * Calendar and meeting management service
+ * Supports both on-chain (Arbitrum smart contract) and localStorage modes
  */
 export class CalendarService {
   private meetings: Map<string, CalendarEvent> = new Map();
+  private useContract: boolean = false;
 
   constructor() {
     this.loadFromStorage();
   }
 
   /**
+   * Initialize with Web3 provider to enable contract mode
+   */
+  setProvider(provider: BrowserProvider) {
+    meetingContractService.setProvider(provider);
+    this.useContract = meetingContractService.isConfigured();
+    
+    console.log('CalendarService.setProvider called');
+    console.log('  Contract configured:', meetingContractService.isConfigured());
+    console.log('  useContract:', this.useContract);
+  }
+
+  /**
+   * Check if contract mode is enabled
+   */
+  isContractMode(): boolean {
+    return this.useContract;
+  }
+
+  /**
    * Create a new meeting/event
    */
-  createMeeting(meeting: Omit<CalendarEvent, 'id'>): CalendarEvent {
+  async createMeeting(meeting: Omit<CalendarEvent, 'id'>): Promise<CalendarEvent> {
+    if (this.useContract) {
+      try {
+        const meetingId = await meetingContractService.createMeeting(meeting);
+        const createdMeeting = await meetingContractService.getMeeting(meetingId);
+        // Also save to local cache
+        this.meetings.set(meetingId, createdMeeting);
+        return createdMeeting;
+      } catch (error) {
+        console.error('Error creating meeting on contract, falling back to localStorage:', error);
+        // Fall back to localStorage on error
+      }
+    }
+
+    // localStorage mode
     const id = this.generateId();
     const newMeeting: CalendarEvent = {
       ...meeting,
@@ -45,7 +82,20 @@ export class CalendarService {
   /**
    * Update an existing meeting
    */
-  updateMeeting(id: string, updates: Partial<CalendarEvent>): CalendarEvent | null {
+  async updateMeeting(id: string, updates: Partial<CalendarEvent>): Promise<CalendarEvent | null> {
+    if (this.useContract) {
+      try {
+        await meetingContractService.updateMeeting(id, updates);
+        const updatedMeeting = await meetingContractService.getMeeting(id);
+        this.meetings.set(id, updatedMeeting);
+        return updatedMeeting;
+      } catch (error) {
+        console.error('Error updating meeting on contract:', error);
+        throw error;
+      }
+    }
+
+    // localStorage mode
     const meeting = this.meetings.get(id);
     if (!meeting) {
       return null;
@@ -61,7 +111,19 @@ export class CalendarService {
   /**
    * Delete a meeting
    */
-  deleteMeeting(id: string): boolean {
+  async deleteMeeting(id: string): Promise<boolean> {
+    if (this.useContract) {
+      try {
+        await meetingContractService.deleteMeeting(id);
+        this.meetings.delete(id);
+        return true;
+      } catch (error) {
+        console.error('Error deleting meeting on contract:', error);
+        throw error;
+      }
+    }
+
+    // localStorage mode
     const deleted = this.meetings.delete(id);
     if (deleted) {
       this.saveToStorage();
@@ -88,16 +150,35 @@ export class CalendarService {
   /**
    * Get all meetings
    */
-  getAllMeetings(): CalendarEvent[] {
+  async getAllMeetings(): Promise<CalendarEvent[]> {
+    if (this.useContract) {
+      try {
+        const meetings = await meetingContractService.getAllMeetings();
+        // Update local cache
+        meetings.forEach(meeting => {
+          this.meetings.set(meeting.id, meeting);
+        });
+        return meetings;
+      } catch (error) {
+        console.error('Error fetching meetings from contract:', error);
+        // Return cached data on error
+        return Array.from(this.meetings.values());
+      }
+    }
+
+    // localStorage mode
     return Array.from(this.meetings.values());
   }
 
   /**
    * Get upcoming meetings
    */
-  getUpcomingMeetings(limit?: number): CalendarEvent[] {
+  async getUpcomingMeetings(limit?: number): Promise<CalendarEvent[]> {
+    // First get all meetings (from contract or localStorage)
+    const allMeetings = await this.getAllMeetings();
+    
     const now = new Date();
-    const upcoming = Array.from(this.meetings.values())
+    const upcoming = allMeetings
       .filter((meeting) => {
         const meetingDate = new Date(meeting.scheduledTime);
         return meetingDate > now && meeting.status !== 'ended';
@@ -145,15 +226,49 @@ export class CalendarService {
   /**
    * Start a meeting (change status to live)
    */
-  startMeeting(id: string): CalendarEvent | null {
-    return this.updateMeeting(id, { status: 'live' });
+  async startMeeting(id: string): Promise<CalendarEvent | null> {
+    if (this.useContract) {
+      try {
+        await meetingContractService.changeMeetingStatus(id, MeetingStatus.Live);
+        return await meetingContractService.getMeeting(id);
+      } catch (error) {
+        console.error('Error starting meeting on contract:', error);
+        throw error;
+      }
+    }
+
+    return await this.updateMeeting(id, { status: 'live' });
   }
 
   /**
    * End a meeting
    */
-  endMeeting(id: string): CalendarEvent | null {
-    return this.updateMeeting(id, { status: 'ended' });
+  async endMeeting(id: string): Promise<CalendarEvent | null> {
+    if (this.useContract) {
+      try {
+        await meetingContractService.changeMeetingStatus(id, MeetingStatus.Ended);
+        return await meetingContractService.getMeeting(id);
+      } catch (error) {
+        console.error('Error ending meeting on contract:', error);
+        throw error;
+      }
+    }
+
+    return await this.updateMeeting(id, { status: 'ended' });
+  }
+
+  /**
+   * Join a meeting (register as participant on-chain)
+   */
+  async joinMeeting(id: string): Promise<void> {
+    if (this.useContract) {
+      try {
+        await meetingContractService.joinMeeting(id);
+      } catch (error) {
+        console.error('Error joining meeting on contract:', error);
+        throw error;
+      }
+    }
   }
 
   /**
@@ -214,15 +329,15 @@ export class CalendarService {
   /**
    * Export calendar to iCal format
    */
-  exportToICal(meetings?: CalendarEvent[]): string {
-    const eventsToExport = meetings || this.getAllMeetings();
+  async exportToICal(meetings?: CalendarEvent[]): Promise<string> {
+    const eventsToExport = meetings || await this.getAllMeetings();
 
     let ical = 'BEGIN:VCALENDAR\n';
     ical += 'VERSION:2.0\n';
     ical += 'PRODID:-//Community Chats//Audio Conference//EN\n';
     ical += 'CALSCALE:GREGORIAN\n';
 
-    eventsToExport.forEach((meeting) => {
+    eventsToExport.forEach((meeting: CalendarEvent) => {
       const dtstart = this.formatICalDate(new Date(meeting.scheduledTime));
       const dtend = this.formatICalDate(
         new Date(

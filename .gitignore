@@ -34,6 +34,10 @@ Thumbs.db
 # ArWeave
 arweave-wallet.json
 
+# Keystore files (encrypted wallets)
+keystore*.json
+*.keystore
+
 # Testing
 coverage/
 .nyc_output/
@@ -41,3 +45,4 @@ coverage/
 # Hardhat
 hardhat.config.ts.bak
 
+keystore.json

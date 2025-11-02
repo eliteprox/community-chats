@@ -104,15 +104,22 @@ npm run test
 ### Development
 
 ```bash
-# Start local Hardhat node
+# Terminal 1: Start Gun.js relay (recommended for multi-user testing)
+npm run gun-relay
+
+# Terminal 2: Start local Hardhat node (optional)
 npm run node
 
-# Deploy contracts to local network
+# Terminal 3: Deploy contracts to local network
 npm run deploy:local
 
-# Start frontend dev server
+# Terminal 4: Start frontend dev server
 cd frontend && npm run dev
 ```
+
+The app will be available at `http://localhost:3001`
+
+**Note**: Gun.js relay is optional - the app works without it using localStorage, but a relay enables better real-time participant discovery across different browsers/computers.
 
 ### Deployment
 

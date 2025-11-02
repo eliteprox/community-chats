@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { Mic, MicOff, Radio, RadioTower, Settings } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import toast from 'react-hot-toast';
 
 interface AudioControlsProps {
   onMuteToggle: () => void;
