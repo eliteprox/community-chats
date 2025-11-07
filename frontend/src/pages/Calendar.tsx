@@ -29,7 +29,7 @@ export default function Calendar() {
     try {
       setIsLoading(true);
       const allMeetings = await calendarService.getAllMeetings();
-      const upcoming = await calendarService.getUpcomingMeetings(10);
+      const upcoming = await calendarService.getUpcomingMeetings();
       setMeetings(allMeetings);
       setUpcomingMeetings(upcoming);
     } catch (error) {
@@ -195,7 +195,7 @@ export default function Calendar() {
       {meetings.length > upcomingMeetings.length && (
         <div>
           <h2 className="text-xl font-semibold text-white mb-4">
-            All Meetings
+            Past Meetings
           </h2>
           <div className="space-y-4">
             {meetings
@@ -343,7 +343,7 @@ function CreateMeetingModal({ onClose, onCreated }: CreateMeetingModalProps) {
   const { user } = useStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [scheduledTime, setScheduledTime] = useState('');
+  const [scheduledTime, setScheduledTime] = useState(new Date().toISOString().slice(0, 16));
   const [duration, setDuration] = useState(60);
   const [whipUrl, setWhipUrl] = useState('');
   const [rtmpUrl, setRtmpUrl] = useState('');
