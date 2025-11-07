@@ -6,6 +6,16 @@ import fs from 'fs';
 export default defineConfig(({ mode }) => {
   const isArweave = mode === 'arweave';
   
+  let httpsConfig = undefined;
+  const keyPath = process.env.HTTPS_KEY_PATH ? path.resolve(__dirname, process.env.HTTPS_KEY_PATH) : null;
+  const certPath = process.env.HTTPS_CERT_PATH ? path.resolve(__dirname, process.env.HTTPS_CERT_PATH) : null;
+  if (keyPath && certPath && fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    httpsConfig = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath),
+    };
+  }
+
   return {
     plugins: [react()],
     resolve: {
@@ -29,10 +39,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      https: {
-        key: fs.readFileSync(path.resolve(__dirname, 'certs/localhost+3-key.pem')),
-        cert: fs.readFileSync(path.resolve(__dirname, 'certs/localhost+3.pem')),
-      },
+      https: httpsConfig,
       host: true,
     },
     define: {
